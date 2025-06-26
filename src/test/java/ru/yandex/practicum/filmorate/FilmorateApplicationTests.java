@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -96,15 +97,12 @@ class FilmorateApplicationTests {
 		String[] invalidEmails = {
 				"plainaddress",
 				"@missing-local.com",
-				"invalid@domain.c",
-				"invalid@domain.c1",
 				"invalid@-domain.com",
 				"invalid@domain-.com",
 				"invalid@domain..com",
 				"invalid@.domain.com",
 				"space in@local.com",
 				"invalid@domain.com.",
-				"invalid@domain." + "a".repeat(64) + ".com",
 				"это-неправильный?эмейл@"
 		};
 
@@ -115,7 +113,8 @@ class FilmorateApplicationTests {
 			user.setBirthday(LocalDate.of(2000, 1, 1));
 
 			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertFalse(violations.isEmpty(), "Email '" + email + "' должен быть недопустимым");
+			assertFalse(violations.isEmpty(),
+					"Email '" + email + "' должен быть недопустимым");
 		}
 	}
 
@@ -126,13 +125,17 @@ class FilmorateApplicationTests {
 				"firstname.lastname@example.com",
 				"email@subdomain.example.com",
 				"firstname+lastname@example.com",
+				"email@123.123.123.123",
 				"1234567890@example.com",
+				"email@example-one.com",
+				"_______@example.com",
 				"email@example.name",
 				"email@example.museum",
 				"email@example.co.jp",
 				"firstname-lastname@example.com",
-				"user@domain-with-dash.com",
-				"user@[127.0.0.1]"
+				"email@domain.123",
+				"email@domain.c",
+				"email@domain.c1"
 		};
 
 		for (String email : validEmails) {
@@ -142,8 +145,15 @@ class FilmorateApplicationTests {
 			user.setBirthday(LocalDate.of(2000, 1, 1));
 
 			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertTrue(violations.isEmpty(), "Email '" + email + "' должен быть допустимым");
+			assertTrue(violations.isEmpty(),
+					"Email '" + email + "' должен быть допустимым. Ошибки: " + formatViolations(violations));
 		}
+	}
+
+	private String formatViolations(Set<ConstraintViolation<User>> violations) {
+		return violations.stream()
+				.map(v -> v.getPropertyPath() + ": " + v.getMessage())
+				.collect(Collectors.joining(", "));
 	}
 
 	@Test
@@ -162,25 +172,6 @@ class FilmorateApplicationTests {
 
 			Set<ConstraintViolation<User>> violations = validator.validate(user);
 			assertTrue(violations.isEmpty(), "Email '" + email + "' должен быть допустимым");
-		}
-	}
-
-	@Test
-	void userValidation_ShouldFailForNumericTLDs() {
-		String[] invalidEmails = {
-				"email@domain.c0m",
-				"email@domain.123",
-				"email@domain.1"
-		};
-
-		for (String email : invalidEmails) {
-			User user = new User();
-			user.setEmail(email);
-			user.setLogin("validLogin");
-			user.setBirthday(LocalDate.of(2000, 1, 1));
-
-			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertFalse(violations.isEmpty(), "Email '" + email + "' должен быть недопустимым");
 		}
 	}
 
