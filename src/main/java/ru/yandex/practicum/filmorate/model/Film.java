@@ -16,7 +16,7 @@ public class Film {
     private String description;
 
     @NotNull(message = "Дата релиза обязательна")
-    @ValidReleaseDate // Поправил, создал свою @.
+    @ValidReleaseDate
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность должна быть положительным числом")

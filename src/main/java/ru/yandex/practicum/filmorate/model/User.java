@@ -9,7 +9,7 @@ public class User {
     private Integer id;
 
     @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Некорректный формат email") // Поправил, теперь @Email
+    @Email(message = "Некорректный формат email")
     private String email;
 
     @NotBlank(message = "Логин не может быть пустым")
