@@ -4,12 +4,10 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class InMemoryUserStorage implements UserStorage {
     private final Map<Integer, User> users = new HashMap<>();
-    private final Map<Integer, Set<Integer>> friends = new ConcurrentHashMap<>();
     private int nextId = 1;
 
     @Override
@@ -46,23 +44,23 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public void addFriend(int userId, int friendId) {
-        friends.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(friendId);
-        friends.computeIfAbsent(friendId, k -> ConcurrentHashMap.newKeySet()).add(userId);
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+        user.getFriendIds().add(friendId);
+        friend.getFriendIds().add(userId);
     }
 
     @Override
     public void removeFriend(int userId, int friendId) {
-        if (friends.containsKey(userId)) {
-            friends.get(userId).remove(friendId);
-        }
-        if (friends.containsKey(friendId)) {
-            friends.get(friendId).remove(userId);
-        }
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+        user.getFriendIds().remove(friendId);
+        friend.getFriendIds().remove(userId);
     }
 
     @Override
     public Set<Integer> getFriends(int userId) {
-        return friends.getOrDefault(userId, Collections.emptySet());
+        return getUserById(userId).getFriendIds();
     }
 
     private void normalizeName(User user) {

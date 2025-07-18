@@ -38,22 +38,26 @@ public class FilmController {
 
     @GetMapping("/{id}")
     public Film getFilmById(@PathVariable int id) {
+        log.info("Получен запрос на фильм с ID: {}", id);
         return filmService.getFilmById(id);
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable int id, @PathVariable int userId) {
+        log.info("Пользователь {} поставил лайк фильму {}", userId, id);
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable int id, @PathVariable int userId) {
+        log.info("Пользователь {} удалил лайк с фильма {}", userId, id);
         filmService.removeLike(id, userId);
     }
 
     @GetMapping("/popular")
     public List<Film> getPopularFilms(
             @RequestParam(defaultValue = "10") int count) {
+        log.info("Запрошено {} популярных фильмов", count);
         return filmService.getPopularFilms(count);
     }
 }

@@ -4,12 +4,10 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Integer, Film> films = new HashMap<>();
-    private final Map<Integer, Set<Integer>> likes = new ConcurrentHashMap<>();
     private int nextId = 1;
 
     @Override
@@ -44,18 +42,13 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public void addLike(int filmId, int userId) {
-        likes.computeIfAbsent(filmId, k -> ConcurrentHashMap.newKeySet()).add(userId);
+        Film film = getFilmById(filmId);
+        film.getLikes().add(userId);
     }
 
     @Override
     public void removeLike(int filmId, int userId) {
-        if (likes.containsKey(filmId)) {
-            likes.get(filmId).remove(userId);
-        }
-    }
-
-    @Override
-    public Set<Integer> getLikes(int filmId) {
-        return likes.getOrDefault(filmId, Collections.emptySet());
+        Film film = getFilmById(filmId);
+        film.getLikes().remove(userId);
     }
 }
