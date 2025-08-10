@@ -3,13 +3,16 @@ package ru.yandex.practicum.filmorate.model;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 public class User {
     private Integer id;
+    private Set<Integer> friendIds = new HashSet<>();
 
     @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Некорректный формат email") // Поправил, теперь @Email
+    @Email(message = "Некорректный формат email")
     private String email;
 
     @NotBlank(message = "Логин не может быть пустым")
