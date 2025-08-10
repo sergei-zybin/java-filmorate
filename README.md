@@ -1,7 +1,7 @@
 # java-filmorate
 DB diagram:
 
-
+https://github.com/sergei-zybin/java-filmorate/blob/add-database/db_diagram_final.png
 
 > https://dbdiagram.io/d
 
