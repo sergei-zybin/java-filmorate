@@ -51,4 +51,12 @@ public class InMemoryFilmStorage implements FilmStorage {
         Film film = getFilmById(filmId);
         film.getLikes().remove(userId);
     }
+
+    @Override
+    public List<Film> getPopularFilms(int count) {
+        return films.values().stream()
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .limit(count)
+                .toList();
+    }
 }
