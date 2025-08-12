@@ -10,9 +10,9 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
-import ru.yandex.practicum.filmorate.storage.GenreDao;
-import ru.yandex.practicum.filmorate.storage.MpaRatingDao;
-import ru.yandex.practicum.filmorate.storage.FriendshipDao;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
+import ru.yandex.practicum.filmorate.storage.FriendshipDbStorage;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,13 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @JdbcTest
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-@Import({UserDbStorage.class, FilmDbStorage.class, GenreDao.class, MpaRatingDao.class, FriendshipDao.class})
+@Import({UserDbStorage.class, FilmDbStorage.class, GenreDbStorage.class, MpaDbStorage.class, FriendshipDbStorage.class})
 class FilmorateApplicationTests {
 	private final UserDbStorage userStorage;
 	private final FilmDbStorage filmStorage;
-	private final GenreDao genreDao;
-	private final MpaRatingDao mpaRatingDao;
-	private final FriendshipDao friendshipDao;
+	private final GenreDbStorage genreDbStorage;
+	private final MpaDbStorage mpaDbStorage;
+	private final FriendshipDbStorage friendshipDbStorage;
 
 	@Test
 	void testGetUserById() {
@@ -118,7 +118,7 @@ class FilmorateApplicationTests {
 		User savedUser2 = userStorage.create(user2);
 
 		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
-		friendshipDao.confirmFriendship(savedUser1.getId(), savedUser2.getId());
+		friendshipDbStorage.confirmFriendship(savedUser1.getId(), savedUser2.getId());
 
 		assertThat(userStorage.getFriends(savedUser1.getId())).contains(savedUser2.getId());
 
@@ -128,7 +128,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testGetFilmById() {
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film = new Film();
 		film.setName("Test Film");
 		film.setDescription("Description");
@@ -151,7 +151,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testCreateFilm() {
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film = new Film();
 		film.setName("Test Film");
 		film.setDescription("Description");
@@ -167,7 +167,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testUpdateFilm() {
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film = new Film();
 		film.setName("Test Film");
 		film.setDescription("Description");
@@ -186,7 +186,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testGetAllFilms() {
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film1 = new Film();
 		film1.setName("Test Film 1");
 		film1.setDescription("Description 1");
@@ -216,7 +216,7 @@ class FilmorateApplicationTests {
 		user.setBirthday(LocalDate.of(2000, 1, 1));
 		User savedUser = userStorage.create(user);
 
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film = new Film();
 		film.setName("Test Film");
 		film.setDescription("Description");
@@ -242,7 +242,7 @@ class FilmorateApplicationTests {
 		user.setBirthday(LocalDate.of(2000, 1, 1));
 		User savedUser = userStorage.create(user);
 
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		Film film1 = new Film();
 		film1.setName("Popular Film");
 		film1.setDescription("Description 1");
@@ -270,13 +270,13 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testGetAllGenres() {
-		List<Genre> genres = genreDao.getAll();
+		List<Genre> genres = genreDbStorage.getAll();
 		assertThat(genres).hasSize(6); // Ожидаем 6 жанров из data.sql
 	}
 
 	@Test
 	void testGetGenreById() {
-		Genre genre = genreDao.getById(1);
+		Genre genre = genreDbStorage.getById(1);
 		assertThat(genre)
 				.hasFieldOrPropertyWithValue("id", 1)
 				.hasFieldOrPropertyWithValue("name", "Комедия");
@@ -284,18 +284,18 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testGetGenreByIdNotFound() {
-		assertThrows(NotFoundException.class, () -> genreDao.getById(999));
+		assertThrows(NotFoundException.class, () -> genreDbStorage.getById(999));
 	}
 
 	@Test
 	void testGetAllMpaRatings() {
-		List<MpaRating> mpaRatings = mpaRatingDao.getAll();
+		List<MpaRating> mpaRatings = mpaDbStorage.getAll();
 		assertThat(mpaRatings).hasSize(5); // Ожидаем 5 рейтингов из data.sql
 	}
 
 	@Test
 	void testGetMpaRatingById() {
-		MpaRating mpa = mpaRatingDao.getById(1);
+		MpaRating mpa = mpaDbStorage.getById(1);
 		assertThat(mpa)
 				.hasFieldOrPropertyWithValue("id", 1)
 				.hasFieldOrPropertyWithValue("name", "G");
@@ -303,7 +303,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void testGetMpaRatingByIdNotFound() {
-		assertThrows(NotFoundException.class, () -> mpaRatingDao.getById(999));
+		assertThrows(NotFoundException.class, () -> mpaDbStorage.getById(999));
 	}
 
 	@Test
@@ -321,9 +321,9 @@ class FilmorateApplicationTests {
 		User savedUser2 = userStorage.create(user2);
 
 		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
-		friendshipDao.confirmFriendship(savedUser1.getId(), savedUser2.getId());
+		friendshipDbStorage.confirmFriendship(savedUser1.getId(), savedUser2.getId());
 
-		List<Friendship> friendships = friendshipDao.getFriendshipsByUserId(savedUser1.getId());
+		List<Friendship> friendships = friendshipDbStorage.getFriendshipsByUserId(savedUser1.getId());
 		assertThat(friendships).hasSize(1);
 		assertThat(friendships.get(0).isConfirmed()).isTrue();
 	}
@@ -344,7 +344,7 @@ class FilmorateApplicationTests {
 
 		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
 
-		List<Friendship> friendships = friendshipDao.getFriendshipsByUserId(savedUser1.getId());
+		List<Friendship> friendships = friendshipDbStorage.getFriendshipsByUserId(savedUser1.getId());
 		assertThat(friendships).hasSize(1);
 		assertThat(friendships.get(0).getFriendId()).isEqualTo(savedUser2.getId());
 	}

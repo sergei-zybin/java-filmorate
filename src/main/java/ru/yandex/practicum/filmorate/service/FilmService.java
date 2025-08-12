@@ -6,25 +6,25 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
-import ru.yandex.practicum.filmorate.storage.MpaRatingDao;
-import ru.yandex.practicum.filmorate.storage.GenreDao;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
 import java.util.*;
 
 @Service
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final MpaRatingDao mpaRatingDao;
-    private final GenreDao genreDao;
+    private final MpaDbStorage mpaRatingDao;
+    private final GenreDbStorage genreDao;
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
-                       MpaRatingDao mpaRatingDao,
-                       GenreDao genreDao) {
+                       MpaDbStorage mpaDbStorage,
+                       GenreDbStorage genreDbStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
-        this.mpaRatingDao = mpaRatingDao;
-        this.genreDao = genreDao;
+        this.mpaRatingDao = mpaDbStorage;
+        this.genreDao = genreDbStorage;
     }
 
     public Film create(Film film) {

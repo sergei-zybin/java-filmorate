@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.FriendshipDao;
+import ru.yandex.practicum.filmorate.storage.FriendshipDbStorage;
 import jakarta.validation.Valid;
 import java.util.List;
 
@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private final FriendshipDao friendshipDao;
+    private final FriendshipDbStorage friendshipDbStorage;
 
     @PostMapping
     public User createUser(@Valid @RequestBody User user) {
@@ -49,7 +49,7 @@ public class UserController {
     @PutMapping("/{id}/friends/{friendId}/confirm")
     public void confirmFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Пользователь {} подтвердил дружбу с {}", id, friendId);
-        friendshipDao.confirmFriendship(id, friendId);
+        friendshipDbStorage.confirmFriendship(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")

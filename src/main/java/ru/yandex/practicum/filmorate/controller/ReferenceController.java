@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
-import ru.yandex.practicum.filmorate.storage.GenreDao;
-import ru.yandex.practicum.filmorate.storage.MpaRatingDao;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
 
 import java.util.List;
 
@@ -18,30 +18,30 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class ReferenceController {
-    private final GenreDao genreDao;
-    private final MpaRatingDao mpaRatingDao;
+    private final GenreDbStorage genreDbStorage;
+    private final MpaDbStorage mpaDbStorage;
 
     @GetMapping("/genres")
     public List<Genre> getAllGenres() {
         log.info("Запрошен список всех жанров");
-        return genreDao.getAll();
+        return genreDbStorage.getAll();
     }
 
     @GetMapping("/genres/{id}")
     public Genre getGenreById(@PathVariable int id) {
         log.info("Запрошен жанр с ID: {}", id);
-        return genreDao.getById(id);
+        return genreDbStorage.getById(id);
     }
 
     @GetMapping("/mpa")
     public List<MpaRating> getAllMpaRatings() {
         log.info("Запрошен список всех рейтингов MPA");
-        return mpaRatingDao.getAll();
+        return mpaDbStorage.getAll();
     }
 
     @GetMapping("/mpa/{id}")
     public MpaRating getMpaRatingById(@PathVariable int id) {
         log.info("Запрошен рейтинг MPA с ID: {}", id);
-        return mpaRatingDao.getById(id);
+        return mpaDbStorage.getById(id);
     }
 }
