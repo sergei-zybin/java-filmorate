@@ -1,23 +1,21 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.FriendshipDbStorage;
 import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
 @Slf4j
+@RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-
-    @Autowired
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+    private final FriendshipDbStorage friendshipDbStorage;
 
     @PostMapping
     public User createUser(@Valid @RequestBody User user) {
@@ -46,6 +44,12 @@ public class UserController {
     public void addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Пользователь {} добавил в друзья {}", id, friendId);
         userService.addFriend(id, friendId);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}/confirm")
+    public void confirmFriend(@PathVariable int id, @PathVariable int friendId) {
+        log.info("Пользователь {} подтвердил дружбу с {}", id, friendId);
+        friendshipDbStorage.confirmFriendship(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")

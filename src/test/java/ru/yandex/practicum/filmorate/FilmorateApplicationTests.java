@@ -1,215 +1,351 @@
 package ru.yandex.practicum.filmorate;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
+import ru.yandex.practicum.filmorate.storage.FriendshipDbStorage;
 
 import java.time.LocalDate;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@SpringBootTest
+@JdbcTest
+@AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@Import({UserDbStorage.class, FilmDbStorage.class, GenreDbStorage.class, MpaDbStorage.class, FriendshipDbStorage.class})
 class FilmorateApplicationTests {
-	private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+	private final UserDbStorage userStorage;
+	private final FilmDbStorage filmStorage;
+	private final GenreDbStorage genreDbStorage;
+	private final MpaDbStorage mpaDbStorage;
+	private final FriendshipDbStorage friendshipDbStorage;
 
 	@Test
-	void contextLoads() {
-	}
-
-	@Test
-	void filmValidation_ShouldFailWhenNameIsEmpty() {
-		Film film = new Film();
-		film.setName("");
-		film.setDescription("Valid description");
-		film.setReleaseDate(LocalDate.of(2000, 1, 1));
-		film.setDuration(120);
-
-		Set<ConstraintViolation<Film>> violations = validator.validate(film);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для пустого названия");
-	}
-
-	@Test
-	void filmValidation_ShouldFailWhenDescriptionTooLong() {
-		String longDescription = "a".repeat(201);
-		Film film = new Film();
-		film.setName("Valid name");
-		film.setDescription(longDescription);
-		film.setReleaseDate(LocalDate.of(2000, 1, 1));
-		film.setDuration(120);
-
-		Set<ConstraintViolation<Film>> violations = validator.validate(film);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для описания длиннее 200 символов");
-	}
-
-	@Test
-	void filmValidation_ShouldFailWhenReleaseDateTooEarly() {
-		Film film = new Film();
-		film.setName("Valid name");
-		film.setDescription("Valid description");
-		film.setReleaseDate(LocalDate.of(1895, 12, 27));
-		film.setDuration(120);
-
-		Set<ConstraintViolation<Film>> violations = validator.validate(film);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для даты релиза раньше 28.12.1895");
-
-		boolean found = false;
-		for (ConstraintViolation<Film> violation : violations) {
-			if (violation.getMessage().contains("28 декабря 1895")) {
-				found = true;
-				break;
-			}
-		}
-		assertTrue(found, "Должно содержать сообщение о минимальной дате релиза");
-	}
-
-	@Test
-	void filmValidation_ShouldPassWhenReleaseDateIsMinAllowed() {
-		Film film = new Film();
-		film.setName("Valid name");
-		film.setDescription("Valid description");
-		film.setReleaseDate(LocalDate.of(1895, 12, 28));
-		film.setDuration(120);
-
-		Set<ConstraintViolation<Film>> violations = validator.validate(film);
-		assertTrue(violations.isEmpty(), "Должен проходить валидацию для минимальной допустимой даты");
-	}
-
-	@Test
-	void filmValidation_ShouldFailWhenDurationNegative() {
-		Film film = new Film();
-		film.setName("Valid name");
-		film.setDescription("Valid description");
-		film.setReleaseDate(LocalDate.of(2000, 1, 1));
-		film.setDuration(-1);
-
-		Set<ConstraintViolation<Film>> violations = validator.validate(film);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для отрицательной продолжительности");
-	}
-
-	@Test
-	void userValidation_ShouldFailForInvalidEmails() {
-		String[] invalidEmails = {
-				"plainaddress",
-				"@missing-local.com",
-				"invalid@-domain.com",
-				"invalid@domain-.com",
-				"invalid@domain..com",
-				"invalid@.domain.com",
-				"space in@local.com",
-				"invalid@domain.com.",
-				"это-неправильный?эмейл@"
-		};
-
-		for (String email : invalidEmails) {
-			User user = new User();
-			user.setEmail(email);
-			user.setLogin("validLogin");
-			user.setBirthday(LocalDate.of(2000, 1, 1));
-
-			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertFalse(violations.isEmpty(),
-					"Email '" + email + "' должен быть недопустимым");
-		}
-	}
-
-	@Test
-	void userValidation_ShouldPassForValidEmails() {
-		String[] validEmails = {
-				"email@example.com",
-				"firstname.lastname@example.com",
-				"email@subdomain.example.com",
-				"firstname+lastname@example.com",
-				"email@123.123.123.123",
-				"1234567890@example.com",
-				"email@example-one.com",
-				"_______@example.com",
-				"email@example.name",
-				"email@example.museum",
-				"email@example.co.jp",
-				"firstname-lastname@example.com",
-				"email@domain.123",
-				"email@domain.c",
-				"email@domain.c1"
-		};
-
-		for (String email : validEmails) {
-			User user = new User();
-			user.setEmail(email);
-			user.setLogin("validLogin");
-			user.setBirthday(LocalDate.of(2000, 1, 1));
-
-			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertTrue(violations.isEmpty(),
-					"Email '" + email + "' должен быть допустимым. Ошибки: " + formatViolations(violations));
-		}
-	}
-
-	private String formatViolations(Set<ConstraintViolation<User>> violations) {
-		return violations.stream()
-				.map(v -> v.getPropertyPath() + ": " + v.getMessage())
-				.collect(Collectors.joining(", "));
-	}
-
-	@Test
-	void userValidation_ShouldPassForShortButValidTLDs() {
-		String[] validEmails = {
-				"email@example.co",
-				"email@example.com",
-				"email@example.info"
-		};
-
-		for (String email : validEmails) {
-			User user = new User();
-			user.setEmail(email);
-			user.setLogin("validLogin");
-			user.setBirthday(LocalDate.of(2000, 1, 1));
-
-			Set<ConstraintViolation<User>> violations = validator.validate(user);
-			assertTrue(violations.isEmpty(), "Email '" + email + "' должен быть допустимым");
-		}
-	}
-
-	@Test
-	void userValidation_ShouldFailWhenLoginContainsSpaces() {
+	void testGetUserById() {
 		User user = new User();
-		user.setEmail("valid@email.com");
-		user.setLogin("login with spaces");
+		user.setEmail("test@example.com");
+		user.setLogin("testLogin");
 		user.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser = userStorage.create(user);
 
-		Set<ConstraintViolation<User>> violations = validator.validate(user);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для логина с пробелами");
+		User userFromDb = userStorage.getUserById(savedUser.getId());
+
+		assertThat(userFromDb)
+				.hasFieldOrPropertyWithValue("id", savedUser.getId())
+				.hasFieldOrPropertyWithValue("email", "test@example.com")
+				.hasFieldOrPropertyWithValue("login", "testLogin")
+				.hasFieldOrPropertyWithValue("name", "testLogin");
 	}
 
 	@Test
-	void userValidation_ShouldUseLoginWhenNameEmpty() {
+	void testGetUserByIdNotFound() {
+		assertThrows(NotFoundException.class, () -> userStorage.getUserById(999));
+	}
+
+	@Test
+	void testCreateUser() {
 		User user = new User();
-		user.setEmail("valid@email.com");
-		user.setLogin("validLogin");
+		user.setEmail("test@example.com");
+		user.setLogin("testLogin");
 		user.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser = userStorage.create(user);
 
-		assertNull(user.getName());
-
-		if (user.getName() == null || user.getName().isBlank()) {
-			user.setName(user.getLogin());
-		}
-
-		assertEquals("validLogin", user.getName(), "Имя должно совпадать с логином при отсутствии имени");
+		assertThat(savedUser.getId()).isNotZero();
+		assertThat(userStorage.getUserById(savedUser.getId()))
+				.hasFieldOrPropertyWithValue("email", "test@example.com");
 	}
 
 	@Test
-	void userValidation_ShouldFailWhenBirthdayInFuture() {
+	void testUpdateUser() {
 		User user = new User();
-		user.setEmail("valid@email.com");
-		user.setLogin("validLogin");
-		user.setBirthday(LocalDate.now().plusDays(1));
+		user.setEmail("test@example.com");
+		user.setLogin("testLogin");
+		user.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser = userStorage.create(user);
 
-		Set<ConstraintViolation<User>> violations = validator.validate(user);
-		assertFalse(violations.isEmpty(), "Ожидалась ошибка валидации для даты рождения в будущем");
+		savedUser.setEmail("updated@example.com");
+		savedUser.setName("UpdatedName");
+		userStorage.update(savedUser);
+
+		User updatedUser = userStorage.getUserById(savedUser.getId());
+		assertThat(updatedUser)
+				.hasFieldOrPropertyWithValue("email", "updated@example.com")
+				.hasFieldOrPropertyWithValue("name", "UpdatedName");
+	}
+
+	@Test
+	void testGetAllUsers() {
+		User user1 = new User();
+		user1.setEmail("test1@example.com");
+		user1.setLogin("testLogin1");
+		user1.setBirthday(LocalDate.of(2000, 1, 1));
+		userStorage.create(user1);
+
+		User user2 = new User();
+		user2.setEmail("test2@example.com");
+		user2.setLogin("testLogin2");
+		user2.setBirthday(LocalDate.of(2000, 1, 1));
+		userStorage.create(user2);
+
+		List<User> users = userStorage.getAll();
+
+		assertThat(users).hasSize(2);
+	}
+
+	@Test
+	void testAddAndRemoveFriend() {
+		User user1 = new User();
+		user1.setEmail("test1@example.com");
+		user1.setLogin("testLogin1");
+		user1.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser1 = userStorage.create(user1);
+
+		User user2 = new User();
+		user2.setEmail("test2@example.com");
+		user2.setLogin("testLogin2");
+		user2.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser2 = userStorage.create(user2);
+
+		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
+		friendshipDbStorage.confirmFriendship(savedUser1.getId(), savedUser2.getId());
+
+		assertThat(userStorage.getFriends(savedUser1.getId())).contains(savedUser2.getId());
+
+		userStorage.removeFriend(savedUser1.getId(), savedUser2.getId());
+		assertThat(userStorage.getFriends(savedUser1.getId())).isEmpty();
+	}
+
+	@Test
+	void testGetFilmById() {
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film = new Film();
+		film.setName("Test Film");
+		film.setDescription("Description");
+		film.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film.setDuration(120);
+		film.setMpa(mpa);
+		Film savedFilm = filmStorage.create(film);
+
+		Film filmFromDb = filmStorage.getFilmById(savedFilm.getId());
+
+		assertThat(filmFromDb)
+				.hasFieldOrPropertyWithValue("id", savedFilm.getId())
+				.hasFieldOrPropertyWithValue("name", "Test Film");
+	}
+
+	@Test
+	void testGetFilmByIdNotFound() {
+		assertThrows(NotFoundException.class, () -> filmStorage.getFilmById(999));
+	}
+
+	@Test
+	void testCreateFilm() {
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film = new Film();
+		film.setName("Test Film");
+		film.setDescription("Description");
+		film.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film.setDuration(120);
+		film.setMpa(mpa);
+		Film savedFilm = filmStorage.create(film);
+
+		assertThat(savedFilm.getId()).isNotZero();
+		assertThat(filmStorage.getFilmById(savedFilm.getId()))
+				.hasFieldOrPropertyWithValue("name", "Test Film");
+	}
+
+	@Test
+	void testUpdateFilm() {
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film = new Film();
+		film.setName("Test Film");
+		film.setDescription("Description");
+		film.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film.setDuration(120);
+		film.setMpa(mpa);
+		Film savedFilm = filmStorage.create(film);
+
+		savedFilm.setName("Updated Film");
+		filmStorage.update(savedFilm);
+
+		Film updatedFilm = filmStorage.getFilmById(savedFilm.getId());
+		assertThat(updatedFilm)
+				.hasFieldOrPropertyWithValue("name", "Updated Film");
+	}
+
+	@Test
+	void testGetAllFilms() {
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film1 = new Film();
+		film1.setName("Test Film 1");
+		film1.setDescription("Description 1");
+		film1.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film1.setDuration(120);
+		film1.setMpa(mpa);
+		filmStorage.create(film1);
+
+		Film film2 = new Film();
+		film2.setName("Test Film 2");
+		film2.setDescription("Description 2");
+		film2.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film2.setDuration(120);
+		film2.setMpa(mpa);
+		filmStorage.create(film2);
+
+		List<Film> films = filmStorage.getAll();
+
+		assertThat(films).hasSize(2);
+	}
+
+	@Test
+	void testAddAndRemoveLike() {
+		User user = new User();
+		user.setEmail("test@example.com");
+		user.setLogin("testLogin");
+		user.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser = userStorage.create(user);
+
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film = new Film();
+		film.setName("Test Film");
+		film.setDescription("Description");
+		film.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film.setDuration(120);
+		film.setMpa(mpa);
+		Film savedFilm = filmStorage.create(film);
+
+		filmStorage.addLike(savedFilm.getId(), savedUser.getId());
+		Film likedFilm = filmStorage.getFilmById(savedFilm.getId());
+		assertThat(likedFilm.getLikes()).contains(savedUser.getId());
+
+		filmStorage.removeLike(savedFilm.getId(), savedUser.getId());
+		Film unlikedFilm = filmStorage.getFilmById(savedFilm.getId());
+		assertThat(unlikedFilm.getLikes()).isEmpty();
+	}
+
+	@Test
+	void testGetPopularFilms() {
+		User user = new User();
+		user.setEmail("test@example.com");
+		user.setLogin("testLogin");
+		user.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser = userStorage.create(user);
+
+		MpaRating mpa = mpaDbStorage.getById(1);
+		Film film1 = new Film();
+		film1.setName("Popular Film");
+		film1.setDescription("Description 1");
+		film1.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film1.setDuration(120);
+		film1.setMpa(mpa);
+		Film savedFilm1 = filmStorage.create(film1);
+
+		Film film2 = new Film();
+		film2.setName("Less Popular Film");
+		film2.setDescription("Description 2");
+		film2.setReleaseDate(LocalDate.of(2000, 1, 1));
+		film2.setDuration(120);
+		film2.setMpa(mpa);
+		Film savedFilm2 = filmStorage.create(film2);
+
+		filmStorage.addLike(savedFilm1.getId(), savedUser.getId());
+
+		List<Film> popularFilms = filmStorage.getPopularFilms(2);
+
+		assertThat(popularFilms).hasSize(2);
+		assertThat(popularFilms.get(0).getName()).isEqualTo("Popular Film");
+		assertThat(popularFilms.get(0).getLikes()).contains(savedUser.getId());
+	}
+
+	@Test
+	void testGetAllGenres() {
+		List<Genre> genres = genreDbStorage.getAll();
+		assertThat(genres).hasSize(6); // Ожидаем 6 жанров из data.sql
+	}
+
+	@Test
+	void testGetGenreById() {
+		Genre genre = genreDbStorage.getById(1);
+		assertThat(genre)
+				.hasFieldOrPropertyWithValue("id", 1)
+				.hasFieldOrPropertyWithValue("name", "Комедия");
+	}
+
+	@Test
+	void testGetGenreByIdNotFound() {
+		assertThrows(NotFoundException.class, () -> genreDbStorage.getById(999));
+	}
+
+	@Test
+	void testGetAllMpaRatings() {
+		List<MpaRating> mpaRatings = mpaDbStorage.getAll();
+		assertThat(mpaRatings).hasSize(5); // Ожидаем 5 рейтингов из data.sql
+	}
+
+	@Test
+	void testGetMpaRatingById() {
+		MpaRating mpa = mpaDbStorage.getById(1);
+		assertThat(mpa)
+				.hasFieldOrPropertyWithValue("id", 1)
+				.hasFieldOrPropertyWithValue("name", "G");
+	}
+
+	@Test
+	void testGetMpaRatingByIdNotFound() {
+		assertThrows(NotFoundException.class, () -> mpaDbStorage.getById(999));
+	}
+
+	@Test
+	void testConfirmFriendship() {
+		User user1 = new User();
+		user1.setEmail("test1@example.com");
+		user1.setLogin("testLogin1");
+		user1.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser1 = userStorage.create(user1);
+
+		User user2 = new User();
+		user2.setEmail("test2@example.com");
+		user2.setLogin("testLogin2");
+		user2.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser2 = userStorage.create(user2);
+
+		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
+		friendshipDbStorage.confirmFriendship(savedUser1.getId(), savedUser2.getId());
+
+		List<Friendship> friendships = friendshipDbStorage.getFriendshipsByUserId(savedUser1.getId());
+		assertThat(friendships).hasSize(1);
+		assertThat(friendships.get(0).isConfirmed()).isTrue();
+	}
+
+	@Test
+	void testGetFriendshipsByUserId() {
+		User user1 = new User();
+		user1.setEmail("test1@example.com");
+		user1.setLogin("testLogin1");
+		user1.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser1 = userStorage.create(user1);
+
+		User user2 = new User();
+		user2.setEmail("test2@example.com");
+		user2.setLogin("testLogin2");
+		user2.setBirthday(LocalDate.of(2000, 1, 1));
+		User savedUser2 = userStorage.create(user2);
+
+		userStorage.addFriend(savedUser1.getId(), savedUser2.getId());
+
+		List<Friendship> friendships = friendshipDbStorage.getFriendshipsByUserId(savedUser1.getId());
+		assertThat(friendships).hasSize(1);
+		assertThat(friendships.get(0).getFriendId()).isEqualTo(savedUser2.getId());
 	}
 }

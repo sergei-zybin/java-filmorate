@@ -4,13 +4,17 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 import ru.yandex.practicum.filmorate.validator.ValidReleaseDate;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
 public class Film {
     private Integer id;
     private Set<Integer> likes = new HashSet<>();
+    private List<Genre> genres = new ArrayList<>();
+    private MpaRating mpa;
 
     @NotBlank(message = "Название не может быть пустым")
     private String name;
